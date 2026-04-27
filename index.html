@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CryptoCalc Live</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #050508;
+  color: #fff;
+}
+
+.container {
+  max-width: 500px;
+  margin: auto;
+  padding: 30px 20px;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.ticker {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 25px;
+}
+
+.ticker div {
+  flex: 1;
+  background: #111;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+
+input {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 10px;
+  background: #111;
+  border: 1px solid #222;
+  color: #fff;
+  border-radius: 6px;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  background: orange;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.result {
+  margin-top: 20px;
+  padding: 15px;
+  background: #111;
+  border-radius: 8px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h1>CryptoCalc</h1>
+
+  <div class="ticker">
+    <div>BTC<br><span id="btc">...</span></div>
+    <div>ETH<br><span id="eth">...</span></div>
+    <div>SOL<br><span id="sol">...</span></div>
+  </div>
+
+  <select id="coin">
+    <option value="btc">Bitcoin</option>
+    <option value="eth">Ethereum</option>
+    <option value="sol">Solana</option>
+  </select>
+
+  <input type="number" id="amount" placeholder="Enter amount" />
+
+  <button onclick="convert()">Convert</button>
+
+  <div class="result" id="result"></div>
+</div>
+
+<script>
+let prices = {};
+
+/* =========================
+   FETCH PRICES (FIXED)
+========================= */
+async function fetchPrices() {
+  try {
+    const res = await fetch(
+      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd"
+    );
+
+    if (!res.ok) throw new Error("CoinGecko failed");
+
+    const data = await res.json();
+
+    prices = {
+      btc: data.bitcoin.usd,
+      eth: data.ethereum.usd,
+      sol: data.solana.usd
+    };
+
+  } catch (err) {
+    console.warn("Fallback...");
+
+    const [btc, eth, sol] = await Promise.all([
+      fetch("https://api.coincap.io/v2/assets/bitcoin"),
+      fetch("https://api.coincap.io/v2/assets/ethereum"),
+      fetch("https://api.coincap.io/v2/assets/solana")
+    ]);
+
+    const btcData = await btc.json();
+    const ethData = await eth.json();
+    const solData = await sol.json();
+
+    prices = {
+      btc: parseFloat(btcData.data.priceUsd),
+      eth: parseFloat(ethData.data.priceUsd),
+      sol: parseFloat(solData.data.priceUsd)
+    };
+  }
+
+  updateTicker();
+}
+
+/* =========================
+   UPDATE UI
+========================= */
+function updateTicker() {
+  document.getElementById("btc").textContent = "$" + prices.btc.toLocaleString();
+  document.getElementById("eth").textContent = "$" + prices.eth.toLocaleString();
+  document.getElementById("sol").textContent = "$" + prices.sol.toLocaleString();
+}
+
+/* =========================
+   CONVERT
+========================= */
+function convert() {
+  const coin = document.getElementById("coin").value;
+  const amount = parseFloat(document.getElementById("amount").value);
+
+  if (!amount || amount <= 0) {
+    document.getElementById("result").textContent = "Enter valid amount";
+    return;
+  }
+
+  const value = amount * prices[coin];
+
+  document.getElementById("result").innerHTML =
+    amount + " " + coin.toUpperCase() +
+    " = <b>$" + value.toLocaleString() + "</b>";
+}
+
+/* =========================
+   INIT
+========================= */
+fetchPrices();
+setInterval(fetchPrices, 15000);
+</script>
+
+</body>
+</html>
