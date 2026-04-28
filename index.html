@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>CryptoCalc Live</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
 body {
   margin: 0;
@@ -12,167 +11,381 @@ body {
   background: #050508;
   color: #fff;
 }
-
 .container {
   max-width: 500px;
   margin: auto;
   padding: 30px 20px;
 }
-
 h1 {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 6px;
+  font-size: 28px;
+  letter-spacing: 2px;
+}
+.subtitle {
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+  margin-bottom: 28px;
 }
 
+/* Ticker */
 .ticker {
   display: flex;
   gap: 10px;
-  margin-bottom: 25px;
+  margin-bottom: 28px;
 }
-
-.ticker div {
+.ticker-item {
   flex: 1;
   background: #111;
-  padding: 12px;
+  padding: 12px 8px;
   border-radius: 8px;
   text-align: center;
+  border-top: 2px solid #222;
 }
+.ticker-item.btc { border-top-color: #f7931a; }
+.ticker-item.eth { border-top-color: #627eea; }
+.ticker-item.sol { border-top-color: #9945ff; }
+.ticker-symbol { font-size: 11px; color: #888; letter-spacing: 1px; margin-bottom: 4px; }
+.ticker-price { font-size: 14px; font-weight: bold; }
+.ticker-price.loading { color: #333; }
 
-.green { color: #22c55e; }
-.red { color: #ef4444; }
+/* Mode toggle */
+.mode-toggle {
+  display: flex;
+  background: #111;
+  border-radius: 8px;
+  padding: 4px;
+  margin-bottom: 20px;
+  gap: 4px;
+}
+.mode-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #666;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.mode-btn.active { background: orange; color: #000; }
 
-input {
+/* Select */
+select {
   width: 100%;
   padding: 14px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   background: #111;
   border: 1px solid #222;
   color: #fff;
   border-radius: 6px;
+  font-size: 15px;
+  cursor: pointer;
+  box-sizing: border-box;
 }
 
-button {
+/* Input */
+.input-wrap {
+  position: relative;
+  margin-bottom: 14px;
+}
+.input-wrap input {
   width: 100%;
-  padding: 14px;
+  padding: 14px 70px 14px 14px;
+  background: #111;
+  border: 1px solid #333;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 20px;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+.input-wrap input:focus { outline: none; border-color: orange; }
+.input-unit {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+  font-size: 12px;
+  font-weight: bold;
+  pointer-events: none;
+}
+
+/* Button */
+.convert-btn {
+  width: 100%;
+  padding: 15px;
   background: orange;
   border: none;
   font-weight: bold;
+  font-size: 15px;
   cursor: pointer;
   border-radius: 6px;
+  letter-spacing: 1px;
+  color: #000;
+  transition: opacity 0.2s;
 }
+.convert-btn:hover { opacity: 0.9; }
+.convert-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* Result */
 .result {
-  margin-top: 20px;
-  padding: 15px;
+  margin-top: 18px;
+  padding: 20px;
   background: #111;
   border-radius: 8px;
+  display: none;
 }
+.result.visible { display: block; }
+.result-label { font-size: 11px; color: #666; letter-spacing: 1px; margin-bottom: 10px; }
+.result-main { font-size: 32px; font-weight: bold; color: #22c55e; margin-bottom: 6px; word-break: break-all; }
+.result-sub { font-size: 13px; color: #666; }
+.result-sub span { color: #aaa; }
+
+/* All-coins rows */
+.all-coins { display: flex; flex-direction: column; gap: 10px; }
+.coin-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px;
+  background: #1a1a1a;
+  border-radius: 6px;
+}
+.coin-row-left { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #888; }
+.coin-dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot-btc { background: #f7931a; }
+.dot-eth { background: #627eea; }
+.dot-sol { background: #9945ff; }
+.coin-row-right { font-size: 17px; font-weight: bold; color: #fff; }
+
+/* Error */
+.error {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 6px;
+  color: #ef4444;
+  font-size: 13px;
+  display: none;
+}
+.error.visible { display: block; }
+
+.footer { text-align: center; margin-top: 30px; font-size: 11px; color: #2a2a2a; letter-spacing: 1px; }
 </style>
 </head>
-
 <body>
-
 <div class="container">
-  <h1>CryptoCalc</h1>
+
+  <h1>CRYPTO CALC</h1>
+  <p class="subtitle">Type a USD amount — see what you get in crypto</p>
 
   <div class="ticker">
-    <div>BTC<br><span id="btc">...</span></div>
-    <div>ETH<br><span id="eth">...</span></div>
-    <div>SOL<br><span id="sol">...</span></div>
+    <div class="ticker-item btc">
+      <div class="ticker-symbol">BTC</div>
+      <div class="ticker-price loading" id="btc-price">—</div>
+    </div>
+    <div class="ticker-item eth">
+      <div class="ticker-symbol">ETH</div>
+      <div class="ticker-price loading" id="eth-price">—</div>
+    </div>
+    <div class="ticker-item sol">
+      <div class="ticker-symbol">SOL</div>
+      <div class="ticker-price loading" id="sol-price">—</div>
+    </div>
   </div>
 
-  <select id="coin">
-    <option value="btc">Bitcoin</option>
-    <option value="eth">Ethereum</option>
-    <option value="sol">Solana</option>
+  <!-- Mode toggle -->
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btn-usd" onclick="setMode('usd')">$ USD → Crypto</button>
+    <button class="mode-btn" id="btn-crypto" onclick="setMode('crypto')">Crypto → $ USD</button>
+  </div>
+
+  <select id="coin" onchange="onCoinChange()">
+    <option value="all">All Coins (BTC + ETH + SOL)</option>
+    <option value="btc">Bitcoin (BTC)</option>
+    <option value="eth">Ethereum (ETH)</option>
+    <option value="sol">Solana (SOL)</option>
   </select>
 
-  <input type="number" id="amount" placeholder="Enter amount" />
+  <div class="input-wrap">
+    <input type="number" id="amount" placeholder="0.00" min="0" step="any" oninput="onType()" />
+    <span class="input-unit" id="input-unit">USDT</span>
+  </div>
 
-  <button onclick="convert()">Convert</button>
+  <button class="convert-btn" id="convert-btn" onclick="convert()">CONVERT</button>
 
-  <div class="result" id="result"></div>
+  <div class="error" id="error-box"></div>
+  <div class="result" id="result-box"></div>
+
+  <p class="footer">NOT FINANCIAL ADVICE · PRICES AUTO-REFRESH EVERY 30s</p>
 </div>
 
 <script>
-let prices = {};
+let prices = { btc: null, eth: null, sol: null };
+let mode = 'usd'; // 'usd'=USD→Crypto, 'crypto'=Crypto→USD
+let isFetching = false;
+let autoTimer;
 
-/* =========================
-   FETCH PRICES (FIXED)
-========================= */
-async function fetchPrices() {
-  try {
-    const res = await fetch(
-      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd"
-    );
+const meta = {
+  btc: { name: 'Bitcoin',  sym: 'BTC', dot: 'dot-btc', dec: 8 },
+  eth: { name: 'Ethereum', sym: 'ETH', dot: 'dot-eth', dec: 6 },
+  sol: { name: 'Solana',   sym: 'SOL', dot: 'dot-sol', dec: 4 },
+};
 
-    if (!res.ok) throw new Error("CoinGecko failed");
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-usd').classList.toggle('active', m === 'usd');
+  document.getElementById('btn-crypto').classList.toggle('active', m === 'crypto');
+  updateUnit();
+  clearResult();
+}
 
-    const data = await res.json();
+function onCoinChange() { updateUnit(); clearResult(); }
 
-    prices = {
-      btc: data.bitcoin.usd,
-      eth: data.ethereum.usd,
-      sol: data.solana.usd
-    };
-
-  } catch (err) {
-    console.warn("Fallback...");
-
-    const [btc, eth, sol] = await Promise.all([
-      fetch("https://api.coincap.io/v2/assets/bitcoin"),
-      fetch("https://api.coincap.io/v2/assets/ethereum"),
-      fetch("https://api.coincap.io/v2/assets/solana")
-    ]);
-
-    const btcData = await btc.json();
-    const ethData = await eth.json();
-    const solData = await sol.json();
-
-    prices = {
-      btc: parseFloat(btcData.data.priceUsd),
-      eth: parseFloat(ethData.data.priceUsd),
-      sol: parseFloat(solData.data.priceUsd)
-    };
+function updateUnit() {
+  const coin = document.getElementById('coin').value;
+  if (mode === 'usd') {
+    document.getElementById('input-unit').textContent = 'USDT';
+  } else {
+    document.getElementById('input-unit').textContent = coin === 'all' ? 'UNITS' : coin.toUpperCase();
   }
-
-  updateTicker();
 }
 
-/* =========================
-   UPDATE UI
-========================= */
-function updateTicker() {
-  document.getElementById("btc").textContent = "$" + prices.btc.toLocaleString();
-  document.getElementById("eth").textContent = "$" + prices.eth.toLocaleString();
-  document.getElementById("sol").textContent = "$" + prices.sol.toLocaleString();
+function onType() {
+  clearTimeout(autoTimer);
+  clearResult();
+  autoTimer = setTimeout(convert, 600);
 }
 
-/* =========================
-   CONVERT
-========================= */
 function convert() {
-  const coin = document.getElementById("coin").value;
-  const amount = parseFloat(document.getElementById("amount").value);
-
-  if (!amount || amount <= 0) {
-    document.getElementById("result").textContent = "Enter valid amount";
-    return;
-  }
-
-  const value = amount * prices[coin];
-
-  document.getElementById("result").innerHTML =
-    amount + " " + coin.toUpperCase() +
-    " = <b>$" + value.toLocaleString() + "</b>";
+  hideError();
+  const amount = parseFloat(document.getElementById('amount').value);
+  if (!amount || amount <= 0) { showError('Enter a valid amount.'); return; }
+  if (!prices.btc) { fetchThenConvert(amount); return; }
+  doConvert(amount);
 }
 
-/* =========================
-   INIT
-========================= */
-fetchPrices();
-setInterval(fetchPrices, 15000);
-</script>
+function doConvert(amount) {
+  const coin = document.getElementById('coin').value;
+  let html = '';
 
+  if (mode === 'usd') {
+    // USD → Crypto
+    if (coin === 'all') {
+      html = `<div class="result-label">FOR $${fmt(amount)} USDT YOU GET</div><div class="all-coins">`;
+      for (const [k, m] of Object.entries(meta)) {
+        const qty = amount / prices[k];
+        html += `<div class="coin-row">
+          <div class="coin-row-left"><span class="coin-dot ${m.dot}"></span>${m.name}</div>
+          <div class="coin-row-right">${qty.toFixed(m.dec)} ${m.sym}</div>
+        </div>`;
+      }
+      html += `</div>`;
+    } else {
+      const m = meta[coin];
+      const qty = amount / prices[coin];
+      html = `<div class="result-label">FOR $${fmt(amount)} USDT YOU GET</div>
+        <div class="result-main">${qty.toFixed(m.dec)} ${m.sym}</div>
+        <div class="result-sub">at $<span>${fmt(prices[coin])}</span> per ${m.sym}</div>`;
+    }
+  } else {
+    // Crypto → USD
+    if (coin === 'all') {
+      html = `<div class="result-label">VALUE OF ${fmt(amount)} UNITS EACH</div><div class="all-coins">`;
+      for (const [k, m] of Object.entries(meta)) {
+        const usd = amount * prices[k];
+        html += `<div class="coin-row">
+          <div class="coin-row-left"><span class="coin-dot ${m.dot}"></span>${amount} ${m.sym}</div>
+          <div class="coin-row-right">$${fmt(usd)}</div>
+        </div>`;
+      }
+      html += `</div>`;
+    } else {
+      const m = meta[coin];
+      const usd = amount * prices[coin];
+      html = `<div class="result-label">USD VALUE</div>
+        <div class="result-main">$${fmt(usd)}</div>
+        <div class="result-sub"><span>${amount} ${m.sym}</span> at $<span>${fmt(prices[coin])}</span> per ${m.sym}</div>`;
+    }
+  }
+
+  const box = document.getElementById('result-box');
+  box.innerHTML = html;
+  box.classList.add('visible');
+}
+
+async function fetchThenConvert(amount) {
+  if (isFetching) return;
+  isFetching = true;
+  const btn = document.getElementById('convert-btn');
+  btn.disabled = true;
+  btn.textContent = 'FETCHING PRICES...';
+
+  try {
+    await loadPrices();
+    updateTicker();
+    if (amount) doConvert(amount);
+  } catch (e) {
+    showError('Could not fetch live prices. Try again.');
+  }
+
+  isFetching = false;
+  btn.disabled = false;
+  btn.textContent = 'CONVERT';
+}
+
+async function loadPrices() {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      tools: [{ type: "web_search_20250305", name: "web_search" }],
+      messages: [{
+        role: "user",
+        content: `Search for the current live USD prices of Bitcoin (BTC), Ethereum (ETH), and Solana (SOL).
+Reply ONLY with this exact JSON format, no markdown, no extra text:
+{"btc": 94000, "eth": 3200, "sol": 145}`
+      }]
+    })
+  });
+
+  const data = await res.json();
+  const text = data.content.map(b => b.type === 'text' ? b.text : '').join('');
+  const match = text.match(/\{[^}]+\}/);
+  if (!match) throw new Error('Bad response');
+  const p = JSON.parse(match[0]);
+  prices = { btc: Number(p.btc), eth: Number(p.eth), sol: Number(p.sol) };
+}
+
+function updateTicker() {
+  ['btc', 'eth', 'sol'].forEach(id => {
+    const el = document.getElementById(`${id}-price`);
+    el.textContent = '$' + fmt(prices[id]);
+    el.classList.remove('loading');
+  });
+}
+
+function fmt(n) {
+  if (!n && n !== 0) return '—';
+  if (n >= 1000) return n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  if (n >= 1) return n.toFixed(2);
+  return n.toFixed(6);
+}
+function showError(msg) { const e = document.getElementById('error-box'); e.textContent = msg; e.classList.add('visible'); }
+function hideError() { document.getElementById('error-box').classList.remove('visible'); }
+function clearResult() { document.getElementById('result-box').classList.remove('visible'); hideError(); }
+
+// Init
+fetchThenConvert(null);
+setInterval(() => loadPrices().then(updateTicker).catch(() => {}), 30000);
+</script>
 </body>
 </html>
