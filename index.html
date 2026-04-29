@@ -191,12 +191,21 @@ select {
 </div>
 
 <script>
-let prices = {};
+/* STATIC FALLBACK (instant load) */
+let prices = {
+  btc: 70000,
+  eth: 3000,
+  sol: 100
+};
+
 let lastPrices = {};
 let mode = "usd";
 let timer;
 
-/* LOAD FROM CACHE FIRST */
+/* show instantly */
+updateTicker();
+
+/* LOAD CACHE */
 const cached = localStorage.getItem("crypto_prices");
 if (cached) {
   prices = JSON.parse(cached);
@@ -213,7 +222,7 @@ function fetchWithTimeout(url, timeout = 3000) {
   ]);
 }
 
-/* LOAD PRICES */
+/* LOAD LIVE PRICES */
 async function loadPrices() {
   try {
     const res = await fetchWithTimeout(
@@ -227,8 +236,6 @@ async function loadPrices() {
       eth: data.ethereum.usd,
       sol: data.solana.usd
     };
-
-    localStorage.setItem("crypto_prices", JSON.stringify(prices));
 
   } catch {
     try {
@@ -244,23 +251,20 @@ async function loadPrices() {
         sol: parseFloat((await sol.json()).data.priceUsd)
       };
 
-      localStorage.setItem("crypto_prices", JSON.stringify(prices));
-
-    } catch (err) {
-      console.warn("All APIs failed");
+    } catch {
       return;
     }
   }
 
+  localStorage.setItem("crypto_prices", JSON.stringify(prices));
   updateTicker();
 }
 
-/* UPDATE TICKER */
+/* UPDATE UI */
 function updateTicker() {
   ["btc","eth","sol"].forEach(id => updateCoin(id, prices[id]));
 }
 
-/* UPDATE SINGLE COIN */
 function updateCoin(id, price) {
   const el = document.getElementById(id);
   if (!price) return;
@@ -308,32 +312,54 @@ function autoConvert(){
   timer=setTimeout(convert,300);
 }
 
-/* CONVERT */
+/* CONVERT (FULL FIXED) */
 function convert(){
-  const amount=parseFloat(amountInput.value);
-  const coin=coinSelect.value;
+  const amount = parseFloat(amountInput.value);
+  const coin = coinSelect.value;
   if(!amount) return;
 
-  let html=`<div class="result-title">For $${amount.toLocaleString()} you get:</div>`;
+  let html = "";
 
-  if(coin==="all"){
-    html+=row("Bitcoin",amount/prices.btc,"BTC");
-    html+=row("Ethereum",amount/prices.eth,"ETH");
-    html+=row("Solana",amount/prices.sol,"SOL");
+  if(mode === "usd"){
+    html += `<div class="result-title">For $${amount.toLocaleString()} you get:</div>`;
+
+    if(coin === "all"){
+      html += row("Bitcoin", amount / prices.btc, "BTC");
+      html += row("Ethereum", amount / prices.eth, "ETH");
+      html += row("Solana", amount / prices.sol, "SOL");
+    } else {
+      const val = amount / prices[coin];
+      const name = coin==="btc"?"Bitcoin":coin==="eth"?"Ethereum":"Solana";
+      html += row(name, val, coin.toUpperCase());
+    }
+
   } else {
-    const val=amount/prices[coin];
-    const name=coin==="btc"?"Bitcoin":coin==="eth"?"Ethereum":"Solana";
-    html+=row(name,val,coin.toUpperCase());
+    html += `<div class="result-title">For ${amount} you get:</div>`;
+
+    if(coin === "all"){
+      html += usdRow("Bitcoin", amount * prices.btc);
+      html += usdRow("Ethereum", amount * prices.eth);
+      html += usdRow("Solana", amount * prices.sol);
+    } else {
+      const val = amount * prices[coin];
+      const name = coin==="btc"?"Bitcoin":coin==="eth"?"Ethereum":"Solana";
+      html += usdRow(name, val);
+    }
   }
 
-  result.innerHTML=html;
+  result.innerHTML = html;
   result.classList.add("visible");
 }
 
-/* ROW */
+/* ROWS */
 function row(name,value,sym){
   let c=name==="Bitcoin"?"#f7931a":name==="Ethereum"?"#627eea":"#9945ff";
   return `<div class="row"><span>${name}</span><b style="color:${c}">${value.toFixed(6)} ${sym}</b></div>`;
+}
+
+function usdRow(name,value){
+  let c=name==="Bitcoin"?"#f7931a":name==="Ethereum"?"#627eea":"#9945ff";
+  return `<div class="row"><span>${name}</span><b style="color:${c}">$${value.toLocaleString()}</b></div>`;
 }
 
 const amountInput=document.getElementById("amount");
