@@ -22,7 +22,6 @@ body {
 h1 {
   text-align: center;
   margin-bottom: 6px;
-  letter-spacing: 2px;
 }
 
 .subtitle {
@@ -50,16 +49,12 @@ h1 {
 .ticker-item.eth { border-top-color: #627eea; }
 .ticker-item.sol { border-top-color: #9945ff; }
 
-.ticker-symbol {
-  font-size: 11px;
-  color: #888;
-}
 .ticker-price {
-  font-size: 14px;
   font-weight: bold;
+  transition: color 0.3s;
 }
 
-/* Mode toggle */
+/* Toggle */
 .mode-toggle {
   display: flex;
   background: #111;
@@ -80,7 +75,7 @@ h1 {
   color: #000;
 }
 
-/* Inputs layout */
+/* Input row */
 .input-row {
   display: flex;
   gap: 10px;
@@ -94,6 +89,7 @@ h1 {
   border: 1px solid #222;
   color: #fff;
   border-radius: 6px;
+  font-size: 16px; /* ✅ mobile zoom fix */
 }
 
 #recalcBtn {
@@ -102,13 +98,10 @@ h1 {
   border: none;
   border-radius: 6px;
   color: #000;
-  font-weight: bold;
   cursor: pointer;
 }
-#recalcBtn:hover {
-  opacity: 0.9;
-}
 
+/* Select */
 select {
   width: 100%;
   padding: 14px;
@@ -117,6 +110,7 @@ select {
   border: 1px solid #222;
   color: #fff;
   border-radius: 6px;
+  font-size: 16px; /* ✅ mobile zoom fix */
 }
 
 /* Result */
@@ -129,12 +123,6 @@ select {
 }
 .result.visible { display: block; }
 
-.result-main {
-  font-size: 28px;
-  font-weight: bold;
-  color: #22c55e;
-}
-
 .row {
   display: flex;
   justify-content: space-between;
@@ -143,7 +131,7 @@ select {
 
 .footer {
   text-align: center;
-  margin-top: 25px;
+  margin-top: 20px;
   font-size: 11px;
   color: #2a2a2a;
 }
@@ -160,16 +148,13 @@ select {
 <!-- Ticker -->
 <div class="ticker">
   <div class="ticker-item btc">
-    <div class="ticker-symbol">BTC</div>
-    <div class="ticker-price" id="btc">—</div>
+    BTC <div id="btc" class="ticker-price">—</div>
   </div>
   <div class="ticker-item eth">
-    <div class="ticker-symbol">ETH</div>
-    <div class="ticker-price" id="eth">—</div>
+    ETH <div id="eth" class="ticker-price">—</div>
   </div>
   <div class="ticker-item sol">
-    <div class="ticker-symbol">SOL</div>
-    <div class="ticker-price" id="sol">—</div>
+    SOL <div id="sol" class="ticker-price">—</div>
   </div>
 </div>
 
@@ -179,14 +164,13 @@ select {
   <button class="mode-btn" id="cryptoBtn" onclick="setMode('crypto')">Crypto → USD</button>
 </div>
 
-<select id="coin" onchange="clearResult()">
+<select id="coin">
   <option value="all">All Coins</option>
   <option value="btc">Bitcoin</option>
   <option value="eth">Ethereum</option>
   <option value="sol">Solana</option>
 </select>
 
-<!-- Input + Recalc -->
 <div class="input-row">
   <input type="number" id="amount" placeholder="Enter amount" oninput="autoConvert()">
   <button id="recalcBtn" onclick="convert()">↻</button>
@@ -194,16 +178,17 @@ select {
 
 <div class="result" id="result"></div>
 
-<p class="footer">AUTO REFRESH PRICES EVERY 30s</p>
+<p class="footer">AUTO REFRESH EVERY 30s</p>
 
 </div>
 
 <script>
 let prices = {};
+let lastPrices = {};
 let mode = "usd";
 let timer;
 
-/* LIVE PRICES */
+/* FETCH PRICES */
 async function loadPrices() {
   try {
     const res = await fetch(
@@ -234,11 +219,23 @@ async function loadPrices() {
   updateTicker();
 }
 
-/* UPDATE */
+/* UPDATE TICKER */
 function updateTicker() {
-  document.getElementById("btc").textContent = "$" + prices.btc.toLocaleString();
-  document.getElementById("eth").textContent = "$" + prices.eth.toLocaleString();
-  document.getElementById("sol").textContent = "$" + prices.sol.toLocaleString();
+  updateCoin("btc", prices.btc);
+  updateCoin("eth", prices.eth);
+  updateCoin("sol", prices.sol);
+}
+
+function updateCoin(id, price) {
+  const el = document.getElementById(id);
+  el.textContent = "$" + price.toLocaleString();
+
+  if (lastPrices[id]) {
+    if (price > lastPrices[id]) el.style.color = "#22c55e";
+    else if (price < lastPrices[id]) el.style.color = "#ef4444";
+  }
+
+  lastPrices[id] = price;
 }
 
 /* MODE */
@@ -246,7 +243,6 @@ function setMode(m) {
   mode = m;
   document.getElementById("usdBtn").classList.toggle("active", m==="usd");
   document.getElementById("cryptoBtn").classList.toggle("active", m==="crypto");
-  clearResult();
 }
 
 /* AUTO */
@@ -260,46 +256,33 @@ function convert() {
   const amount = parseFloat(document.getElementById("amount").value);
   const coin = document.getElementById("coin").value;
 
-  if (!amount || amount <= 0 || !prices.btc) return;
+  if (!amount || amount <= 0) return;
 
-  let html = "";
+  let html = `<div>For $${amount.toLocaleString()} you get:</div><br>`;
 
   if (mode === "usd") {
     if (coin === "all") {
-      html += `<div>For $${amount.toLocaleString()} you get:</div><br>`;
       html += row("Bitcoin", amount / prices.btc, "BTC");
       html += row("Ethereum", amount / prices.eth, "ETH");
       html += row("Solana", amount / prices.sol, "SOL");
     } else {
       const val = amount / prices[coin];
-      html = `<div class="result-main">${val.toFixed(6)} ${coin.toUpperCase()}</div>`;
-    }
-  } else {
-    if (coin === "all") {
-      html += `<div>Value of ${amount} units:</div><br>`;
-      html += row("Bitcoin", amount * prices.btc, "$");
-      html += row("Ethereum", amount * prices.eth, "$");
-      html += row("Solana", amount * prices.sol, "$");
-    } else {
-      const val = amount * prices[coin];
-      html = `<div class="result-main">$${val.toLocaleString()}</div>`;
+      const name = coin==="btc"?"Bitcoin":coin==="eth"?"Ethereum":"Solana";
+      html += row(name, val, coin.toUpperCase());
     }
   }
 
-  const box = document.getElementById("result");
-  box.innerHTML = html;
-  box.classList.add("visible");
+  document.getElementById("result").innerHTML = html;
+  document.getElementById("result").classList.add("visible");
 }
 
+/* ROW */
 function row(name, value, sym) {
+  let c = name==="Bitcoin"?"#f7931a":name==="Ethereum"?"#627eea":"#9945ff";
   return `<div class="row">
     <span>${name}</span>
-    <b>${sym === "$" ? "$"+value.toLocaleString() : value.toFixed(6)+" "+sym}</b>
+    <b style="color:${c}">${value.toFixed(6)} ${sym}</b>
   </div>`;
-}
-
-function clearResult() {
-  document.getElementById("result").classList.remove("visible");
 }
 
 /* INIT */
