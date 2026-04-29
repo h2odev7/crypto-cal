@@ -12,34 +12,36 @@ body {
   background: #050508;
   color: #fff;
 }
+
 .container {
   max-width: 500px;
   margin: auto;
   padding: 30px 20px;
 }
+
 h1 {
   text-align: center;
   margin-bottom: 6px;
-  font-size: 28px;
   letter-spacing: 2px;
 }
+
 .subtitle {
   text-align: center;
   color: #666;
   font-size: 13px;
-  margin-bottom: 28px;
+  margin-bottom: 25px;
 }
 
 /* Ticker */
 .ticker {
   display: flex;
   gap: 10px;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
 }
 .ticker-item {
   flex: 1;
   background: #111;
-  padding: 12px 8px;
+  padding: 12px;
   border-radius: 8px;
   text-align: center;
   border-top: 2px solid #222;
@@ -47,11 +49,10 @@ h1 {
 .ticker-item.btc { border-top-color: #f7931a; }
 .ticker-item.eth { border-top-color: #627eea; }
 .ticker-item.sol { border-top-color: #9945ff; }
+
 .ticker-symbol {
   font-size: 11px;
   color: #888;
-  letter-spacing: 1px;
-  margin-bottom: 4px;
 }
 .ticker-price {
   font-size: 14px;
@@ -65,17 +66,13 @@ h1 {
   border-radius: 8px;
   padding: 4px;
   margin-bottom: 20px;
-  gap: 4px;
 }
 .mode-btn {
   flex: 1;
   padding: 10px;
   border: none;
-  border-radius: 6px;
   background: transparent;
   color: #666;
-  font-size: 13px;
-  font-weight: bold;
   cursor: pointer;
 }
 .mode-btn.active {
@@ -83,7 +80,35 @@ h1 {
   color: #000;
 }
 
-/* Select */
+/* Inputs layout */
+.input-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.input-row input {
+  flex: 1;
+  padding: 14px;
+  background: #111;
+  border: 1px solid #222;
+  color: #fff;
+  border-radius: 6px;
+}
+
+#recalcBtn {
+  width: 60px;
+  background: orange;
+  border: none;
+  border-radius: 6px;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+}
+#recalcBtn:hover {
+  opacity: 0.9;
+}
+
 select {
   width: 100%;
   padding: 14px;
@@ -92,31 +117,6 @@ select {
   border: 1px solid #222;
   color: #fff;
   border-radius: 6px;
-  font-size: 15px;
-}
-
-/* Input */
-.input-wrap {
-  position: relative;
-  margin-bottom: 14px;
-}
-.input-wrap input {
-  width: 100%;
-  padding: 14px 70px 14px 14px;
-  background: #111;
-  border: 1px solid #333;
-  color: #fff;
-  border-radius: 6px;
-  font-size: 20px;
-}
-.input-unit {
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #666;
-  font-size: 12px;
-  font-weight: bold;
 }
 
 /* Result */
@@ -128,12 +128,13 @@ select {
   display: none;
 }
 .result.visible { display: block; }
+
 .result-main {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: bold;
   color: #22c55e;
-  margin-bottom: 6px;
 }
+
 .row {
   display: flex;
   justify-content: space-between;
@@ -142,7 +143,7 @@ select {
 
 .footer {
   text-align: center;
-  margin-top: 30px;
+  margin-top: 25px;
   font-size: 11px;
   color: #2a2a2a;
 }
@@ -150,46 +151,50 @@ select {
 </head>
 
 <body>
+
 <div class="container">
 
 <h1>CRYPTO CALC</h1>
-<p class="subtitle">Type USD — auto converts instantly</p>
+<p class="subtitle">Live crypto + instant conversion</p>
 
+<!-- Ticker -->
 <div class="ticker">
   <div class="ticker-item btc">
     <div class="ticker-symbol">BTC</div>
-    <div class="ticker-price" id="btc-price">—</div>
+    <div class="ticker-price" id="btc">—</div>
   </div>
   <div class="ticker-item eth">
     <div class="ticker-symbol">ETH</div>
-    <div class="ticker-price" id="eth-price">—</div>
+    <div class="ticker-price" id="eth">—</div>
   </div>
   <div class="ticker-item sol">
     <div class="ticker-symbol">SOL</div>
-    <div class="ticker-price" id="sol-price">—</div>
+    <div class="ticker-price" id="sol">—</div>
   </div>
 </div>
 
+<!-- Mode -->
 <div class="mode-toggle">
-  <button class="mode-btn active" onclick="setMode('usd')" id="btn-usd">$ USD → Crypto</button>
-  <button class="mode-btn" onclick="setMode('crypto')" id="btn-crypto">Crypto → $ USD</button>
+  <button class="mode-btn active" id="usdBtn" onclick="setMode('usd')">USD → Crypto</button>
+  <button class="mode-btn" id="cryptoBtn" onclick="setMode('crypto')">Crypto → USD</button>
 </div>
 
 <select id="coin" onchange="clearResult()">
-  <option value="all">All Coins (BTC + ETH + SOL)</option>
-  <option value="btc">Bitcoin (BTC)</option>
-  <option value="eth">Ethereum (ETH)</option>
-  <option value="sol">Solana (SOL)</option>
+  <option value="all">All Coins</option>
+  <option value="btc">Bitcoin</option>
+  <option value="eth">Ethereum</option>
+  <option value="sol">Solana</option>
 </select>
 
-<div class="input-wrap">
-  <input type="number" id="amount" placeholder="0.00" oninput="autoConvert()" />
-  <span class="input-unit" id="input-unit">USDT</span>
+<!-- Input + Recalc -->
+<div class="input-row">
+  <input type="number" id="amount" placeholder="Enter amount" oninput="autoConvert()">
+  <button id="recalcBtn" onclick="convert()">↻</button>
 </div>
 
-<div class="result" id="result-box"></div>
+<div class="result" id="result"></div>
 
-<p class="footer">LIVE DATA · AUTO REFRESH 30s</p>
+<p class="footer">AUTO REFRESH PRICES EVERY 30s</p>
 
 </div>
 
@@ -198,7 +203,7 @@ let prices = {};
 let mode = "usd";
 let timer;
 
-/* FETCH PRICES */
+/* LIVE PRICES */
 async function loadPrices() {
   try {
     const res = await fetch(
@@ -211,6 +216,7 @@ async function loadPrices() {
       eth: data.ethereum.usd,
       sol: data.solana.usd
     };
+
   } catch {
     const [btc, eth, sol] = await Promise.all([
       fetch("https://api.coincap.io/v2/assets/bitcoin"),
@@ -228,22 +234,22 @@ async function loadPrices() {
   updateTicker();
 }
 
-/* UPDATE TICKER */
+/* UPDATE */
 function updateTicker() {
-  document.getElementById("btc-price").textContent = "$" + prices.btc.toLocaleString();
-  document.getElementById("eth-price").textContent = "$" + prices.eth.toLocaleString();
-  document.getElementById("sol-price").textContent = "$" + prices.sol.toLocaleString();
+  document.getElementById("btc").textContent = "$" + prices.btc.toLocaleString();
+  document.getElementById("eth").textContent = "$" + prices.eth.toLocaleString();
+  document.getElementById("sol").textContent = "$" + prices.sol.toLocaleString();
 }
 
-/* MODE SWITCH */
+/* MODE */
 function setMode(m) {
   mode = m;
-  document.getElementById("btn-usd").classList.toggle("active", m==="usd");
-  document.getElementById("btn-crypto").classList.toggle("active", m==="crypto");
+  document.getElementById("usdBtn").classList.toggle("active", m==="usd");
+  document.getElementById("cryptoBtn").classList.toggle("active", m==="crypto");
   clearResult();
 }
 
-/* AUTO CONVERT */
+/* AUTO */
 function autoConvert() {
   clearTimeout(timer);
   timer = setTimeout(convert, 300);
@@ -280,7 +286,7 @@ function convert() {
     }
   }
 
-  const box = document.getElementById("result-box");
+  const box = document.getElementById("result");
   box.innerHTML = html;
   box.classList.add("visible");
 }
@@ -293,7 +299,7 @@ function row(name, value, sym) {
 }
 
 function clearResult() {
-  document.getElementById("result-box").classList.remove("visible");
+  document.getElementById("result").classList.remove("visible");
 }
 
 /* INIT */
