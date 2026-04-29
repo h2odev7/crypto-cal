@@ -54,7 +54,7 @@ h1 {
   transition: color 0.3s;
 }
 
-/* Toggle */
+/* Mode toggle */
 .mode-toggle {
   display: flex;
   background: #111;
@@ -75,7 +75,26 @@ h1 {
   color: #000;
 }
 
-/* Input row */
+/* Select (mobile improved) */
+select {
+  width: 100%;
+  padding: 16px;
+  margin-bottom: 14px;
+  background: #ffffff;
+  border: 1px solid #ddd;
+  color: #000;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  appearance: none;
+
+  background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+}
+
+/* Input */
 .input-row {
   display: flex;
   gap: 10px;
@@ -89,9 +108,10 @@ h1 {
   border: 1px solid #222;
   color: #fff;
   border-radius: 6px;
-  font-size: 16px; /* ✅ mobile zoom fix */
+  font-size: 16px;
 }
 
+/* Button */
 #recalcBtn {
   width: 60px;
   background: orange;
@@ -99,18 +119,6 @@ h1 {
   border-radius: 6px;
   color: #000;
   cursor: pointer;
-}
-
-/* Select */
-select {
-  width: 100%;
-  padding: 14px;
-  margin-bottom: 12px;
-  background: #111;
-  border: 1px solid #222;
-  color: #fff;
-  border-radius: 6px;
-  font-size: 16px; /* ✅ mobile zoom fix */
 }
 
 /* Result */
@@ -123,12 +131,20 @@ select {
 }
 .result.visible { display: block; }
 
+.result-title {
+  text-align: center;
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 14px;
+}
+
 .row {
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
 }
 
+/* Footer */
 .footer {
   text-align: center;
   margin-top: 20px;
@@ -145,20 +161,12 @@ select {
 <h1>CRYPTO CALC</h1>
 <p class="subtitle">Live crypto + instant conversion</p>
 
-<!-- Ticker -->
 <div class="ticker">
-  <div class="ticker-item btc">
-    BTC <div id="btc" class="ticker-price">—</div>
-  </div>
-  <div class="ticker-item eth">
-    ETH <div id="eth" class="ticker-price">—</div>
-  </div>
-  <div class="ticker-item sol">
-    SOL <div id="sol" class="ticker-price">—</div>
-  </div>
+  <div class="ticker-item btc">BTC <div id="btc" class="ticker-price">—</div></div>
+  <div class="ticker-item eth">ETH <div id="eth" class="ticker-price">—</div></div>
+  <div class="ticker-item sol">SOL <div id="sol" class="ticker-price">—</div></div>
 </div>
 
-<!-- Mode -->
 <div class="mode-toggle">
   <button class="mode-btn active" id="usdBtn" onclick="setMode('usd')">USD → Crypto</button>
   <button class="mode-btn" id="cryptoBtn" onclick="setMode('crypto')">Crypto → USD</button>
@@ -188,12 +196,9 @@ let lastPrices = {};
 let mode = "usd";
 let timer;
 
-/* FETCH PRICES */
 async function loadPrices() {
   try {
-    const res = await fetch(
-      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd"
-    );
+    const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd");
     const data = await res.json();
 
     prices = {
@@ -219,7 +224,6 @@ async function loadPrices() {
   updateTicker();
 }
 
-/* UPDATE TICKER */
 function updateTicker() {
   updateCoin("btc", prices.btc);
   updateCoin("eth", prices.eth);
@@ -238,29 +242,28 @@ function updateCoin(id, price) {
   lastPrices[id] = price;
 }
 
-/* MODE */
 function setMode(m) {
   mode = m;
   document.getElementById("usdBtn").classList.toggle("active", m==="usd");
   document.getElementById("cryptoBtn").classList.toggle("active", m==="crypto");
 }
 
-/* AUTO */
 function autoConvert() {
   clearTimeout(timer);
   timer = setTimeout(convert, 300);
 }
 
-/* CONVERT */
 function convert() {
   const amount = parseFloat(document.getElementById("amount").value);
   const coin = document.getElementById("coin").value;
 
   if (!amount || amount <= 0) return;
 
-  let html = `<div>For $${amount.toLocaleString()} you get:</div><br>`;
+  let html = "";
 
   if (mode === "usd") {
+    html += `<div class="result-title">For $${amount.toLocaleString()} you get:</div>`;
+
     if (coin === "all") {
       html += row("Bitcoin", amount / prices.btc, "BTC");
       html += row("Ethereum", amount / prices.eth, "ETH");
@@ -270,13 +273,24 @@ function convert() {
       const name = coin==="btc"?"Bitcoin":coin==="eth"?"Ethereum":"Solana";
       html += row(name, val, coin.toUpperCase());
     }
+  } else {
+    if (coin === "all") {
+      html += `<div class="result-title">Value of ${amount} units:</div>`;
+      html += usdRow("Bitcoin", amount * prices.btc);
+      html += usdRow("Ethereum", amount * prices.eth);
+      html += usdRow("Solana", amount * prices.sol);
+    } else {
+      const val = amount * prices[coin];
+      const name = coin==="btc"?"Bitcoin":coin==="eth"?"Ethereum":"Solana";
+      html += `<div class="result-title">For ${amount} ${coin.toUpperCase()} you get:</div>`;
+      html += usdRow(name, val);
+    }
   }
 
   document.getElementById("result").innerHTML = html;
   document.getElementById("result").classList.add("visible");
 }
 
-/* ROW */
 function row(name, value, sym) {
   let c = name==="Bitcoin"?"#f7931a":name==="Ethereum"?"#627eea":"#9945ff";
   return `<div class="row">
@@ -285,7 +299,14 @@ function row(name, value, sym) {
   </div>`;
 }
 
-/* INIT */
+function usdRow(name, value) {
+  let c = name==="Bitcoin"?"#f7931a":name==="Ethereum"?"#627eea":"#9945ff";
+  return `<div class="row">
+    <span>${name}</span>
+    <b style="color:${c}">$${value.toLocaleString()}</b>
+  </div>`;
+}
+
 loadPrices();
 setInterval(loadPrices, 30000);
 </script>
