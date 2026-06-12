@@ -204,10 +204,17 @@ nav {
   display:flex; flex-direction:column; align-items:center; gap:8px; opacity:.35;
 }
 .scroll-hint span { font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--mid); }
-.scroll-line { width:1px; height:40px; background:var(--muted); position:relative; overflow:hidden; }
+.scroll-line {
+  width:2px; height:56px;
+  background: rgba(200,255,0,0.15);
+  position:relative; overflow:hidden;
+  box-shadow: 0 0 8px rgba(200,255,0,0.4), 0 0 20px rgba(200,255,0,0.2);
+}
 .scroll-line::after {
   content:''; position:absolute; top:-100%; left:0; width:100%; height:100%;
-  background:var(--acid); animation:scrollDown 1.5s infinite;
+  background: linear-gradient(to bottom, transparent, var(--acid), transparent);
+  animation:scrollDown 1.2s ease-in-out infinite;
+  box-shadow: 0 0 12px var(--acid), 0 0 24px var(--acid);
 }
 @keyframes scrollDown { 0% { top:-100%; } 100% { top:100%; } }
 
@@ -468,7 +475,7 @@ body.light #wallet-btn { background:var(--acid); color:#fff; }
     <li><a href="https://x.com/oceanord28" target="_blank"><span class="sd-icon"><svg viewBox="0 0 24 24" width="12" height="12" style="fill:currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></span>@oceanord28</a></li>
     <li><a href="https://x.com/theunion100" target="_blank"><span class="sd-icon"><svg viewBox="0 0 24 24" width="12" height="12" style="fill:currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></span>@theunion100</a></li>
   </ul>
-  <div class="sd-footer">TheUnion on Bitcoin</div>
+  <div class="sd-footer" style="color:var(--orange);">TheUnion on Bitcoin</div>
 </div>
 
 <!-- NAV -->
@@ -505,7 +512,7 @@ body.light #wallet-btn { background:var(--acid); color:#fff; }
         <span class="holder-badge badge-no" id="holder-badge">—</span>
       </div>
     </div>
-    <div class="scroll-hint"><span>Scroll</span><div class="scroll-line"></div></div>
+    <div class="scroll-hint"><div class="scroll-line"></div></div>
   </section>
   <footer>
     <div class="footer-logo">THE<span>UNION</span></div>
@@ -600,7 +607,7 @@ body.light #wallet-btn { background:var(--acid); color:#fff; }
   </div>
   <div class="bb-right">
     <button class="bb-btn" id="theme-btn" onclick="toggleTheme()">🌙</button>
-    <button class="bb-btn" id="mute-btn" onclick="toggleMute()">♪</button>
+    <button class="bb-btn" id="mute-btn" type="button">♪</button>
   </div>
 </div>
 
@@ -626,6 +633,10 @@ function showPage(name) {
     showSkeletons(20);
     fetchAllChildren();
   }
+  // Pre-fetch collection count for home page stat even if gallery not visited
+  if (!galleryLoaded && name === 'home') {
+    prefetchCount();
+  }
 }
 
 // ── SIDE DRAWER ───────────────────────────────
@@ -649,46 +660,34 @@ document.addEventListener('click', e => {
 
 // ── AUDIO ─────────────────────────────────────
 const bgAudio = document.getElementById('bg-audio');
-let muted   = false;
-let audioOn = false;
 bgAudio.volume = 0.22;
+let audioStarted = false;
+let audioMuted   = false;
 
 function startAudio() {
-  if (audioOn) return;
-  bgAudio.play()
-    .then(() => { audioOn = true; })
-    .catch(() => {});
+  if (audioStarted) return;
+  bgAudio.play().then(() => {
+    audioStarted = true;
+    document.getElementById('mute-btn').textContent = '♪';
+  }).catch(() => {});
 }
 
 function toggleMute() {
-  if (!audioOn) { startAudio(); return; }
-  muted = !muted;
-  bgAudio.muted = muted;
-  const btn = document.getElementById('mute-btn');
-  if (btn) btn.textContent = muted ? '🔇' : '♪';
-}
-
-// iOS: play() MUST be called directly inside a user gesture handler
-// Wire to side tab, wallet button, and any first touch
-function unlockAudio() {
-  bgAudio.play().then(() => { audioOn = true; }).catch(() => {});
-}
-sideTab.addEventListener('click', unlockAudio);
-document.getElementById('wallet-btn').addEventListener('click', unlockAudio);
-
-// First touch/click anywhere
-(function() {
-  function onGesture() {
-    unlockAudio();
-    ['touchend','click'].forEach(e => document.removeEventListener(e, onGesture));
+  // If audio hasn't started yet, start it
+  if (!audioStarted) {
+    startAudio();
+    return;
   }
-  ['touchend','click'].forEach(e =>
-    document.addEventListener(e, onGesture, { once: true, passive: true })
-  );
-})();
+  audioMuted = !audioMuted;
+  bgAudio.muted = audioMuted;
+  document.getElementById('mute-btn').textContent = audioMuted ? '🔇' : '♪';
+}
 
-// Desktop autoplay attempt
-setTimeout(() => startAudio(), 400);
+// Wire side tab to start audio on click (iOS user gesture)
+sideTab.addEventListener('click', startAudio);
+
+// Desktop: try autoplay after short delay
+setTimeout(startAudio, 600);
 
 // ── THEME ─────────────────────────────────────
 function toggleTheme() {
@@ -771,6 +770,32 @@ document.getElementById('bb-currency').addEventListener('click', () => {
 
 fetchBTC();
 setInterval(fetchBTC, 60000);
+
+
+// ── PREFETCH COUNT for home page stat ─────────
+async function prefetchCount() {
+  if (allIds.length > 0) return; // already loaded
+  try {
+    const res  = await fetch(`${ORD}/r/children/${PARENT}`);
+    const data = await res.json();
+    const ids  = data.ids || [];
+    ids.forEach(id => { if (!seenIds.has(id)) { seenIds.add(id); allIds.push(id); } });
+    const el = document.getElementById('stat-loaded');
+    if (el) el.textContent = allIds.length;
+    // Keep fetching more pages silently
+    if (data.more) {
+      let page = 1;
+      while (true) {
+        const r2   = await fetch(`${ORD}/r/children/${PARENT}/${page}`);
+        const d2   = await r2.json();
+        (d2.ids||[]).forEach(id => { if (!seenIds.has(id)) { seenIds.add(id); allIds.push(id); } });
+        if (el) el.textContent = allIds.length;
+        if (!d2.more || (d2.ids||[]).length === 0) break;
+        page++;
+      }
+    }
+  } catch(e) {}
+}
 
 // ── GALLERY — fetch all children ──────────────
 let allIds   = [];
@@ -968,7 +993,11 @@ function showToast(msg) {
 
 // ── INIT ──────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // Wire mute button directly
+  document.getElementById('mute-btn').onclick = toggleMute;
+
   // Hero grid
+  prefetchCount(); // load count for home page stat
   const g = document.getElementById('hero-grid');
   for (let i = 0; i < 32; i++) g.appendChild(document.createElement('div'));
 });
